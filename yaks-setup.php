@@ -22,6 +22,9 @@ if (!extension_loaded('mysqli')) {
     die('HATA: PHP "mysqli" eklentisi sunucunuzda yüklü veya aktif değil.');
 }
 if (!is_writable($downloadDir)) {
+mkdir($downloadDir, 0700);
+}
+if (!is_writable($downloadDir)) {
     die("HATA: Dizin yazılabilir değil: " . htmlspecialchars($downloadDir) . ". Lütfen PHP için yazma izinlerini kontrol edin.");
 }
 if (empty($zipUrl) || !filter_var($zipUrl, FILTER_VALIDATE_URL)) {
