@@ -9,7 +9,8 @@ error_reporting(E_ALL);
 $zipUrl = "https://github.com/grandtheftcode/yaks-nodejs/archive/refs/heads/main.zip"; // <-- İNDİRİLECEK ZIP URL'SİNİ BURAYA YAZIN
 
 $downloadDir = __DIR__."/../yaksnodejs/"; // Betiğin çalıştığı dizin
-$zipFileName = $downloadDir . '/downloaded_dump.zip';
+$folddir = "yaks-nodejs-main/";
+$zipFileName = $downloadDir . '/main.zip';
 $extractedSqlPath = $downloadDir . '/yaks_db.sql';
 $knexfilePath = $downloadDir . '/knexfile.js'; // Oluşturulacak Knex dosyası
 // ----------------
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($zip->open($zipFileName) !== TRUE) {
                 throw new Exception("ZIP dosyası açılamadı.");
             }
-
+            
             $sqlFileIndex = -1;
             $sqlFileNameInZip = '';
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -97,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             // SQL dosyasını çıkar (orijinal adıyla)
              $extractedActualFileName = $downloadDir . '/' . $sqlFileNameInZip;
-           if (!$zip->extractTo($downloadDir)) {
+           if (!$zip->extractTo($downloadDir.str_replace($folddir,'', $extractedActualFileName))) {
                  $zip->close(); // Hata olsa bile kapatmayı dene
                 throw new Exception("ZIP içeriği çıkarılamadı. Hedef klasör izinlerini kontrol edin: " . htmlspecialchars($downloadDi));
             }
