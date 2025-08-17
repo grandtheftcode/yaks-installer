@@ -9,11 +9,48 @@ error_reporting(E_ALL);
 $zipUrl = "https://github.com/grandtheftcode/yaks-nodejs/archive/refs/heads/main.zip"; // <-- İNDİRİLECEK ZIP URL'SİNİ BURAYA YAZIN
 
 $downloadDir = __DIR__."/../yaksnodejs/"; // Betiğin çalıştığı dizin
-$folddir = "yaks-nodejs-main/";
-$zipFileName = $downloadDir . '/main.zip';
+$maidir = $downloadDir . "/yaks-nodejs-main";
+$zipFileName = $downloadDir . '/downloaded_dump.zip';
 $extractedSqlPath = $downloadDir . '/yaks_db.sql';
 $knexfilePath = $downloadDir . '/knexfile.js'; // Oluşturulacak Knex dosyası
 // ----------------
+
+function moveDirectoryContent($source, $destination) {
+    if (!is_dir($source)) {
+        return false;
+    }
+
+    // Hedef dizin yoksa oluştur
+    if (!is_dir($destination)) {
+        mkdir($destination, 0777, true);
+    }
+
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($source, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+
+    foreach ($iterator as $item) {
+        // Dosya veya dizin adını al
+        $path = $item->getPathname();
+        $relativePath = substr($path, strlen($source) + 1);
+        $targetPath = $destination . DIRECTORY_SEPARATOR . $relativePath;
+
+        // Dizinse oluştur, dosyaysa taşı
+        if ($item->isDir()) {
+            mkdir($targetPath);
+        } else {
+            rename($path, $targetPath);
+        }
+    }
+
+    // Orijinal dizini sil
+    rmdir($source);
+    
+    return true;
+}
+
+
 
 // Gerekli eklentileri kontrol et
 if (!extension_loaded('zip')) {
@@ -21,9 +58,6 @@ if (!extension_loaded('zip')) {
 }
 if (!extension_loaded('mysqli')) {
     die('HATA: PHP "mysqli" eklentisi sunucunuzda yüklü veya aktif değil.');
-}
-if (!is_writable($downloadDir)) {
-mkdir($downloadDir, 0700);
 }
 if (!is_writable($downloadDir)) {
     die("HATA: Dizin yazılabilir değil: " . htmlspecialchars($downloadDir) . ". Lütfen PHP için yazma izinlerini kontrol edin.");
@@ -78,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($zip->open($zipFileName) !== TRUE) {
                 throw new Exception("ZIP dosyası açılamadı.");
             }
-            
+
             $sqlFileIndex = -1;
             $sqlFileNameInZip = '';
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -98,9 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             // SQL dosyasını çıkar (orijinal adıyla)
              $extractedActualFileName = $downloadDir . '/' . $sqlFileNameInZip;
-           if (!$zip->extractTo($downloadDir.str_replace($folddir,'', $extractedActualFileName))) {
+           if (!$zip->extractTo($downloadDir)) {
                  $zip->close(); // Hata olsa bile kapatmayı dene
-                throw new Exception("ZIP içeriği çıkarılamadı. Hedef klasör izinlerini kontrol edin: " . htmlspecialchars($downloadDi));
+                throw new Exception("ZIP içeriği çıkarılamadı. Hedef klasör izinlerini kontrol edin: " . htmlspecialchars($downloadDir));
             }
 
             // Standart isme taşıyalım (opsiyonel ama temizlik için iyi)
@@ -117,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             $zip->close();
 
-
+             moveDirectoryContent($maidir, $downloadDir);
             // --- 3. Adım: Veritabanına Bağlan ve SQL Dump'ı Yükle ---
             $stepMessages[] = "3. Adım: MySQL veritabanına bağlanılıyor...";
             $conn = mysqli_connect($dbHost, $dbUser, $dbPass, $dbName);
